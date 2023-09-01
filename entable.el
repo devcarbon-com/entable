@@ -1,3 +1,4 @@
+
 ;;; entable.el --- A package to convert between org-table and org-headings  -*- lexical-binding: t; -*-
 
 ;; Package-Requires: ((org "9.1") (seq "2.20"))
@@ -33,12 +34,7 @@ Stop when the shortest list runs out."
               (when subheadings
                 (push (cons title subheadings) result))))))
       ;; Pad the result list to same length
-      (let* ((max-length (apply 'max (mapcar 'length result)))
-             (padded-result (mapcar
-                             (lambda (row)
-                               (append row (make-list (- max-length (length row)) "-")))
-                             result)))
-        (nreverse padded-result)))))
+      (nreverse result))))
 
 
 (defun entable/insert-list-as-org-table (list)
@@ -49,7 +45,7 @@ Stop when the shortest list runs out."
     ;; Populate the table vector
     (dotimes (i max-columns)
       (let ((column (make-list (length list) "")))
-Q        ;; Prepare the newline separated string for each column
+        ;; Prepare the newline separated string for each column
         (dotimes (j (length list))
           (setf (nth j column) (or (nth i (nth j list)) "")))
         (setf (aref table i) column)))
@@ -76,13 +72,17 @@ Q        ;; Prepare the newline separated string for each column
 (defun entable/replace-table-with-headings ()
   "Replace the org table at point with org headings, ignoring cells with only whitespace."
   (interactive)
-  (let ((table (entable/org-table-to-list)))
+  (let* ((current-level (or (org-current-level) 0))
+         (table (entable/org-table-to-list)))
     (delete-region (org-table-begin) (org-table-end))
     (dolist (row table)
-      (insert (concat "* " (car row) "\n"))
+      (insert (make-string (1+ current-level) ?*) " "
+              (car row) "\n")
       (dolist (subheading (cdr row))
         (unless (string-match-p "^\\s-*$" subheading) ; Ignore cells with only whitespace
-          (insert (concat "** " subheading "\n")))))))
+          (insert (make-string (+ current-level 2) ?*) " "
+                  subheading "\n"))))))
+
 
 (defun entable/org-table-to-list ()
   "Converts an org table to a list."
