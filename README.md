@@ -1,3 +1,5 @@
 # entable
 Small emacs package for easy header &lt;--> table conversion.
-<asciinema-player src="https://asciinema.org/a/605873.json" cols="80" rows="24"></asciinema-player>
+
+Example usage:
+![termtosvg_oxw7matd](https://github.com/devcarbon-com/entable/assets/118597387/a035b30c-90ae-4862-9fdc-060f91389d1a)
