@@ -11,7 +11,7 @@
 (defun entable/-mapcar* (fn &rest lists)
   "Apply FN to successive elements from each of LISTS.
 Stop when the shortest list runs out."
-  (unless (null lists)
+  (when lists
     (let ((result ())
           (min-length (apply #'min (mapcar #'length lists))))
       (dotimes (i min-length (nreverse result))
@@ -20,26 +20,22 @@ Stop when the shortest list runs out."
 
 (defun entable/headings-to-list (begin end)
   "Convert org headings in region from BEGIN to END into list."
-  (let (result)
-    ;; Parse only the selected region, not the entire buffer
-    (save-restriction
-      (narrow-to-region begin end)
-      (let ((tree (org-element-parse-buffer)))
-        ;; Map the headlines to create the result list
-        (org-element-map tree 'headline
-          (lambda (headline)
-            (let* ((title (org-element-property :raw-value headline))
-                   (subheadings (org-element-map (org-element-contents headline) 'headline
-                                  (lambda (subheading) (org-element-property :raw-value subheading)))))
-              (when subheadings
-                (push (cons title subheadings) result))))))
-      ;; Pad the result list to same length
-      (nreverse result))))
+  ;; Parse only the selected region, not the entire buffer
+  (save-restriction
+    (narrow-to-region begin end)
+    (let ((tree (org-element-parse-buffer)))
+      ;; Map the headlines to create the result list
+      (org-element-map tree 'headline
+        (lambda (headline)
+          (when-let* ((title (org-element-property :raw-value headline))
+                      (subheadings (org-element-map (org-element-contents headline) 'headline
+                                     (lambda (subheading) (org-element-property :raw-value subheading)))))
+            (nreverse (cons title subheadings))))))))
 
 
 (defun entable/insert-list-as-org-table (list)
   "Convert LIST of strings into an org table and insert it at the end of the buffer."
-  (let* ((max-columns (apply 'max (mapcar 'length list)))
+  (let* ((max-columns (apply #'max (mapcar #'length list)))
          (table (make-vector max-columns nil)))
 
     ;; Populate the table vector
@@ -54,7 +50,7 @@ Stop when the shortest list runs out."
     (dotimes (i max-columns)
       (insert "| " (mapconcat 'identity (aref table i) " | ") " |\n")
       ;; Insert the heading separator after the first row
-      (when (= i 0)
+      (when (zerop i)
         (insert "|-" (make-string (* max-columns 2) ?-) "-|\n")))
 
     (org-table-align)))
@@ -90,15 +86,10 @@ Stop when the shortest list runs out."
   (let* ((table (if (org-at-table-p) (org-table-to-lisp) (user-error "Not at a table")))
          (header (mapcar #'substring-no-properties (car table)))
          (rows (cdr table))
-         (content (mapcar
-                   (lambda (row)
-                     (mapcar
-                      (lambda (cell)
-                        (substring-no-properties cell))
-                      row))
-                   (seq-filter #'sequencep rows)))
-         (transposed (apply #'entable/-mapcar* #'list header content)))
-    transposed))
+         (content (thread-last rows
+                               (seq-filter #'sequencep)
+                               (seq-map (apply-partially #'seq-map #'substring-no-properties)))))
+    (apply #'cl-mapcar #'list header content)))
 
 (provide 'entable)
 ;;; entable.el ends here
