@@ -8,16 +8,6 @@
 
 ;;; Code:
 
-(defun entable/-mapcar* (fn &rest lists)
-  "Apply FN to successive elements from each of LISTS.
-Stop when the shortest list runs out."
-  (when lists
-    (let ((result ())
-          (min-length (apply #'min (mapcar #'length lists))))
-      (dotimes (i min-length (nreverse result))
-        (push (apply fn (mapcar (lambda (list) (nth i list)) lists))
-              result)))))
-
 (defun entable/headings-to-list (begin end)
   "Convert org headings in region from BEGIN to END into list."
   ;; Parse only the selected region, not the entire buffer
